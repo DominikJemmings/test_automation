@@ -28,12 +28,6 @@
                 <input type="text" class="form-control" id="colFormLabel1" :placeholder="roi + ' %'" disabled>
               </div>
             </div>
-            <div class="row mb-2">
-              <label for="colFormLabel2" class="col-sm-6 col-form-label">Break-Even Point</label>
-              <div class="col-sm-6">
-                <input type="number" class="form-control" id="colFormLabel2" :placeholder="breakEvenPoint" disabled>
-              </div>
-            </div>
             <h4 class="mb-2">Settings</h4>
             <div class="row mb-2">
               <label for="colFormLabel3" class="col-sm-6 col-form-label">Test Runs</label>
@@ -55,18 +49,21 @@
             <div class="d-flex justify-content-between">
               <div>
                 <h3>Factors</h3>
-                <p>(Manual Testing)</p>
+                <p  style="color: #d80129">(Manual Testing)</p>
               </div>
               <div class="pt-3">
-                <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalInput">Add Factor</button>
+                <button class="btn btn-secondary" @click="openFactorModal('manualFactor', -1)" data-bs-toggle="modal" data-bs-target="#modalFactor">Add Factor</button>
               </div>
             </div>
 
             <div v-for="(factor, index) in manualFactors" class="d-flex justify-content-between p-3 rounded border mb-1">
-              <h5>{{ factor.name }}</h5>
               <div>
-                <button class="btn btn-primary m-1" data-bs-toggle="modal" data-bs-target="#modalInput">Edit</button>
-                <button class="btn btn-danger m-1" @click="deleteFactore(index)">Delete</button>
+                <h5 class="m-0">{{ factor.name }}</h5>
+                <span>({{ factor.type }}: {{ factor.value }})</span>
+              </div>
+              <div>
+                <button class="btn btn-primary m-1" data-bs-toggle="modal" data-bs-target="#modalFactor" @click="openFactorModal('manualFactor', index)">Edit</button>
+                <button class="btn btn-danger m-1" @click="deleteFactor('manualFactor', index)">Delete</button>
               </div>
             </div>
 
@@ -77,39 +74,53 @@
             <div class="d-flex justify-content-between">
               <div>
                 <h3>Factors</h3>
-                <p>(Automated Testing)</p>
+                <p  style="color: #00912b">(Automated Testing)</p>
               </div>
               <div class="pt-3">
-                <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalInput">Add Factor</button>
+                <button class="btn btn-secondary" @click="openFactorModal('automatedFactor', -1)" data-bs-toggle="modal" data-bs-target="#modalFactor">Add Factor</button>
               </div>
             </div>
             
-            <div v-for="factor in automatedFactors" class="d-flex justify-content-between p-3 rounded border mb-1">
-              <h5>{{ factor.name }}</h5>
+            <div v-for="(factor, index) in automatedFactors" class="d-flex justify-content-between p-3 rounded border mb-1">
               <div>
-                <button class="btn btn-primary m-1" data-bs-toggle="modal" data-bs-target="#modalInput">Edit</button>
-                <button class="btn btn-danger m-1">Delete</button>
+                <h5 class="m-0">{{ factor.name }}</h5>
+                <span>({{ factor.type }}: {{ factor.value }})</span>
+              </div>
+              <div>
+                <button class="btn btn-primary m-1" data-bs-toggle="modal" data-bs-target="#modalFactor" @click="openFactorModal('automatedFactor', index)">Edit</button>
+                <button class="btn btn-danger m-1" @click="deleteFactor('automatedFactor', index)">Delete</button>
               </div>
             </div>
 
           </div>
         </div>
       </section>
-      <!-- Modal Add Factor (Manual Testing) -->
-      <div class="modal modal-lg fade" id="modalInput" tabindex="-1" aria-labelledby="modalInputLabel" aria-hidden="true">
+      <!-- Modal Add/Edit Factor -->
+      <div class="modal modal-lg fade" id="modalFactor" tabindex="-1" aria-labelledby="modalFactorLabel" aria-hidden="true">
         <div class="modal-dialog">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title" id="modalInputLabel">Add Factor (Manual Testing)</h5>
+
+              <div v-if="currentFactorModalType === 'automatedFactor' && currentFactorModalIndex < 0">
+                <h5 class="modal-title" id="modalFactorLabel">Add Factor (Automated Testing)</h5>
+              </div>
+              <div v-else-if="currentFactorModalType === 'manualFactor' && currentFactorModalIndex < 0">
+                <h5 class="modal-title" id="modalFactorLabel">Add Factor (Manual Testing)</h5>
+              </div>
+              <div v-else-if="currentFactorModalType === 'automatedFactor' && currentFactorModalIndex >= 0">
+                <h5 class="modal-title" id="modalFactorLabel">Edit Factor (Automated Testing)</h5>
+              </div>
+              <div v-else>
+                <h5 class="modal-title" id="modalFactorLabel">Edit Factor (Manual Testing)</h5>
+              </div>
+              
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              
-              
               <div class="form-group row mb-3">
-                <label for="inputEmail3" class="col-sm-3 col-form-label">Factor Name</label>
+                <label for="inputFactorName" class="col-sm-3 col-form-label">Factor Name</label>
                 <div class="col-sm-4">
-                  <input type="text" class="form-control" id="inputEmail3" placeholder="Factor" v-model="currentFactor.name">
+                  <input type="text" class="form-control" id="inputFactorName" v-model="currentFactor.name">
                 </div>
               </div>
               <fieldset class="form-group mb-1">
@@ -117,33 +128,52 @@
                   <legend class="col-form-label col-sm-3 pt-0">Cost Type</legend>
                   <div class="col-sm-9">
                     <div class="form-check">
-                      <input class="form-check-input" type="radio" name="gridRadios" id="gridRadios1" value="fix" v-model="currentFactor.type" autocomplete="off" v-bind:value="0" checked>
-                      <label class="form-check-label" for="gridRadios1">
+                      <input class="form-check-input" type="radio" name="gridRadios" id="gridRadiosFix" value="fix" v-model="currentFactor.type" autocomplete="off" v-bind:value="0" checked>
+                      <label class="form-check-label" for="gridRadiosFix">
                         Fixed Cost
                       </label>
                     </div>
-                    <div class="form-check mb-3">
-                      <input class="form-check-input" type="radio" name="gridRadios" id="gridRadios2" value="var" v-model="currentFactor.type" v-bind:value="1">
-                      <label class="form-check-label" for="gridRadios2">
+                    <div class="form-check mb-1">
+                      <input class="form-check-input" type="radio" name="gridRadios" id="gridRadiosVar" value="var" v-model="currentFactor.type" v-bind:value="1">
+                      <label class="form-check-label" for="gridRadiosVar">
                         Variable Cost
+                      </label>
+                    </div>
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="radio" name="gridRadios" id="gridRadiosCus" value="cus" v-model="currentFactor.type" v-bind:value="2">
+                      <label class="form-check-label" for="gridRadiosCus">
+                        Custome Cost
                       </label>
                     </div>
                   </div>
                 </div>
               </fieldset>
               <div class="form-group row">
-                <label for="inputEmail3" class="col-sm-3 col-form-label">Value</label>
+                <label for="inputValue" class="col-sm-3 col-form-label">Value</label>
                 <div class="col-sm-4">
-                  <input type="number" class="form-control" id="inputEmail3" placeholder="Price">
+                  <input type="text" class="form-control" id="inputValue" v-model="currentFactor.value">
                 </div>
               </div>
-
-
-
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="button" class="btn btn-primary" @click="setFactore()">Add</button>
+
+              <div v-if="currentFactorModalType === 'automatedFactor' && currentFactorModalIndex < 0">
+                <button type="button" class="btn btn-secondary m-1" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary m-1" @click="submiteFactor()">Add</button>
+              </div>
+              <div v-else-if="currentFactorModalType === 'manualFactor' && currentFactorModalIndex < 0">
+                <button type="button" class="btn btn-secondary m-1" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary m-1" @click="submiteFactor()">Add</button>
+              </div>
+              <div v-else-if="currentFactorModalType === 'automatedFactor' && currentFactorModalIndex >= 0">
+                <button type="button" class="btn btn-secondary m-1" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary m-1" @click="submiteFactor()">Update</button>
+              </div>
+              <div v-else>
+                <button type="button" class="btn btn-secondary m-1" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary m-1" @click="submiteFactor()">Update</button>
+              </div>
+
             </div>
           </div>
         </div>
@@ -215,58 +245,307 @@
         data() {
           return {
             roi: 0,
-            breakEvenPoint: 0,
-            testRuns: 7,
-            showFactors: true,
+            testRuns: 20,
+            showFactors: false,
 
-            currentFactor: {name: '', value: 0, type: 'fix'},
-            manualFactors: [{name: 'Factor 1', value: 0, type: 'fix'}, {name: 'Factor 2', value: 0, type: 'fix'}],
-            automatedFactors: [{name: 'Factor 3', value: 0, type: 'fix'}, {name: 'Factor 4', value: 0, type: 'fix'}]
+            currentFactorModalType: null,
+            currentFactorModalIndex: null,
+            currentFactor: {name: null, value: null, type: 'fix'},
+
+            manualFactors: [{name: 'Test Design', value: '50', type: 'fix'}, {name: 'Test Exectution', value: '10', type: 'var'}],
+            automatedFactors: [{name: 'Test Design', value: '100', type: 'fix'}, {name: 'Test Exectution', value: '5', type: 'var'}]
+
+
           }
         },
         methods: {
-          setFactore() {
+          // type = 'manualFactor' or 'automatedFactor' | index = -1 or 0,1,2,... (-1 = add and 0,1,2,... = edit)
+          openFactorModal(type, index) {
+            this.currentFactorModalType = type
+            this.currentFactorModalIndex = index
+            console.log(this.currentFactorModalType)
+            console.log(this.currentFactorModalIndex)
             console.log(this.currentFactor)
-            this.manualFactors.push({name: this.currentFactor.name, value: this.currentFactor.value, type: this.currentFactor.type})
-            this.newFactor = ''
+
+            if (index >= 0) {
+              if (type === 'automatedFactor') {
+                this.currentFactor = {name: this.automatedFactors[index].name, value: this.automatedFactors[index].value, type: this.automatedFactors[index].type}
+              } else {
+                this.currentFactor = {name: this.manualFactors[index].name, value: this.manualFactors[index].value, type: this.manualFactors[index].type}
+              }
+            } else {
+              this.currentFactor = {name: null, value: null, type: 'fix'}
+            }
           },
-          editFactore(index, factor) {
-            console.log(index + " " + factor)
+
+          // this.currentFactorModalType = 'manualFactor' or 'automatedFactor' | this.currentFactorModalIndex = -1 or 0,1,2,... (-1 = add and 0,1,2,... = edit)
+          submiteFactor() {
+            console.log(this.currentFactorModalType)
+            console.log(this.currentFactorModalIndex)
+            console.log(this.currentFactor)
+
+            if (this.currentFactor.name !== null && this.currentFactor.value !== null && this.currentFactor.type !== null) {
+
+              // Check if input (value) is Valid in combination with the input (type)
+              if (this.currentFactor.type === 'fix' || this.currentFactor.type === 'var') {
+                if (!isNumeric(this.currentFactor.value)) {
+                  alert("INVALID INPUT - Value has to be a number if cost type is fixed or variable")
+                  return
+                }
+              } else {
+                console.log('custome')
+              }
+
+              if (this.currentFactorModalType === 'automatedFactor' && this.currentFactorModalIndex < 0) {
+                this.automatedFactors.push({name: this.currentFactor.name, value: this.currentFactor.value, type: this.currentFactor.type})
+              } else if (this.currentFactorModalType === 'manualFactor' && this.currentFactorModalIndex < 0) {
+                this.manualFactors.push({name: this.currentFactor.name, value: this.currentFactor.value, type: this.currentFactor.type})
+              } else if (this.currentFactorModalType === 'automatedFactor' && this.currentFactorModalIndex >= 0) {
+                this.automatedFactors[this.currentFactorModalIndex] = {name: this.currentFactor.name, value: this.currentFactor.value, type: this.currentFactor.type}
+              } else {
+                this.manualFactors[this.currentFactorModalIndex] = {name: this.currentFactor.name, value: this.currentFactor.value, type: this.currentFactor.type}
+              }
+
+              this.currentFactor = {name: null, value: null, type: 'fix'}
+
+              this.updatePlot()
+            } else {
+              alert("INVALID INPUT")
+            }
           },
-          deleteFactore(index) {
+
+          // type = 'manualFactor' or 'automatedFactor' | index = -1 or 0,1,2,... (-1 = add and 0,1,2,... = edit)
+          deleteFactor(type, index) {
+            console.log(type)
             console.log(index)
+
+            if (type === 'automatedFactor') {
+              this.automatedFactors.splice(index, 1)
+            } else {
+              this.manualFactors.splice(index, 1)
+            }
+
+            this.updatePlot()
           },
+
           updatePlot() {
             console.log('update!')
+
+            let chartData = [['Test runs', 'Manuel Testing', 'Automated Testing']]
+
+            // manualFactors: [{name: 'Factor 1', value: '4', type: 'fix'}, {name: 'Factor 2', value: '2', type: 'fix'}],
+            /*
+              chartData: [
+                ['Test runs', 'Manuel Testing', 'Automated Testing', 'Fixed Costs (Manuel Testing)', 'Variable Costs (Manuel Testing)', 'Fixed Costs (Automated Testing)', 'Variable Costs (Automated Testing)'],
+                ['0',         100,              500,                 100,                            0,                                 500,                               0                                   ],
+                ['1',         200,              550,                 100,                            100,                               500,                               50                                  ],
+                ['2',         300,              600,                 100,                            200,                               500,                               100                                 ],
+                ['3',         400,              650,                 100,                            300,                               500,                               150                                 ]
+              ]
+            */
+            if (this.showFactors) {
+              this.manualFactors.forEach(element => {
+                chartData[0].push(element.name + ' (Manual Testing)')
+              })
+              this.automatedFactors.forEach(element => {
+                chartData[0].push(element.name + ' (Automated Testing)')
+              })
+            }
+
+            for (y = 0; y <= this.testRuns; y++) {
+              let sumManual = 0;
+              let sumAutomated = 0;
+              
+              chartData.push([y.toString(), 0, 0])
+
+              // calculate manual Factors
+              this.manualFactors.forEach(manualFactor => {
+                let currentValue = 0;
+
+                if (manualFactor.type === 'fix') {
+                  currentValue = Number(manualFactor.value)
+                } else if (manualFactor.type === 'var') {
+                  currentValue = Number(manualFactor.value) * y
+                } else {
+                  let currentEquation = manualFactor.value.replace("n", y.toString())
+                  currentValue = Number(shuntingYard(currentEquation))
+                }
+                sumManual += (currentValue)
+                if (this.showFactors) {
+                  chartData[y + 1].push(currentValue)
+                }
+              });
+
+              // calculate automated Factors
+              this.automatedFactors.forEach(automatedFactor => {
+                let currentValue = 0;
+
+                if (automatedFactor.type === 'fix') {
+                  currentValue = Number(automatedFactor.value)
+                } else if (automatedFactor.type === 'var') {
+                  currentValue = Number(automatedFactor.value) * y
+                } else {
+                  let currentEquation = automatedFactor.value.replace("n", y.toString())
+                  automatedFactor = Number(shuntingYard(currentEquation))
+                }
+                sumAutomated += (currentValue)
+                if (this.showFactors) {
+                  chartData[y + 1].push(currentValue)
+                }
+              });
+
+              // add summs to data
+              chartData[y + 1][1] = sumManual
+              chartData[y + 1][2] = sumAutomated
+            }
+
+            console.log(chartData)
+
+
+            updateChart(chartData, this.manualFactors.length, this.automatedFactors.length)
+
+
+            // update ROI
+            const dataLength = chartData.length
+            const manualCost = chartData[dataLength - 1][1]
+            const automatedCost = chartData[dataLength - 1][2]
+            this.roi = ((manualCost - automatedCost) / manualCost) * 100
           }
         }
       }).mount('#app')
 
 
 
-      google.charts.load('current', {'packages':['corechart']});
-      google.charts.setOnLoadCallback(drawChart);
+      function isNumeric(str) {
+        if (typeof str != "string") return false // we only process strings!  
+        return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+              !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
+      }
 
-      function drawChart() {
-        var data = google.visualization.arrayToDataTable([
-          ['Test runs', 'Manuel Testing', 'Automated Testing', 'Fixed Costs (Manuel Testing)', 'Variable Costs (Manuel Testing)', 'Fixed Costs (Automated Testing)', 'Variable Costs (Automated Testing)'],
-          ['0',         100,              500,                 100,                            0,                                 500,                               0                                   ],
-          ['1',         200,              550,                 100,                            100,                               500,                               50                                  ],
-          ['2',         300,              600,                 100,                            200,                               500,                               100                                 ],
-          ['3',         400,              650,                 100,                            300,                               500,                               150                                 ],
-          ['4',         500,              700,                 100,                            400,                               500,                               200                                 ],
-          ['5',         600,              750,                 100,                            500,                               500,                               250                                 ],
-          ['6',         700,              800,                 100,                            600,                               500,                               300                                 ],
-          ['7',         800,              850,                 100,                            700,                               500,                               350                                 ],
-          ['5',         900,              900,                 100,                            800,                               500,                               400                                 ],
-          ['6',         1000,             950,                 100,                            900,                               500,                               450                                 ],
-          ['7',         1100,             1000,                100,                            1000,                              500,                               500                                 ]
-        ]);
 
-        var options = {
+
+      
+      
+      
+      
+      let lineChart = {
+        chart: null,
+        data: [
+          [
+            "Test runs",
+            "Manuel Testing",
+            "Automated Testing"
+          ],
+          [
+            "0",
+            50,
+            100
+          ],
+          [
+            "1",
+            60,
+            105
+          ],
+          [
+            "2",
+            70,
+            110
+          ],
+          [
+            "3",
+            80,
+            115
+          ],
+          [
+            "4",
+            90,
+            120
+          ],
+          [
+            "5",
+            100,
+            125
+          ],
+          [
+            "6",
+            110,
+            130
+          ],
+          [
+            "7",
+            120,
+            135
+          ],
+          [
+            "8",
+            130,
+            140
+          ],
+          [
+            "9",
+            140,
+            145
+          ],
+          [
+            "10",
+            150,
+            150
+          ],
+          [
+            "11",
+            160,
+            155
+          ],
+          [
+            "12",
+            170,
+            160
+          ],
+          [
+            "13",
+            180,
+            165
+          ],
+          [
+            "14",
+            190,
+            170
+          ],
+          [
+            "15",
+            200,
+            175
+          ],
+          [
+            "16",
+            210,
+            180
+          ],
+          [
+            "17",
+            220,
+            185
+          ],
+          [
+            "18",
+            230,
+            190
+          ],
+          [
+            "19",
+            240,
+            195
+          ],
+          [
+            "20",
+            250,
+            200
+          ]
+        ],
+        options: {
           curveType: 'function',
           legend: { position: 'bottom' },
-          colors: ['#70AD47', '#4472C4', '#b7d9a2', '#b7d9a2', '#a1b9e1', '#a1b9e1'],
+          colors: ['#d80129', '#00912b', '#ef99a9', '#ef99a9', '#99d3aa', '#99d3aa'],
           hAxis: {
             title: 'Test runs'
           },
@@ -274,15 +553,332 @@
             title: 'Cost of testing'
           },
           series: {
-            0: { lineWidth: 5 },
-            1: { lineWidth: 5 }
+            0: { lineWidth: 6 },
+            1: { lineWidth: 6 }
           }
-        };
+        }
+      }
 
-        var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+      const initChart = () => {
+        lineChart.chart = new google.visualization.LineChart(
+          document.getElementById('curve_chart')
+        );
+        lineChart.chart.draw(
+          google.visualization.arrayToDataTable(lineChart.data),
+          lineChart.options
+        );
+      }
 
-        chart.draw(data, options);
+      google.charts.load('current', {
+        packages: ['corechart'],
+        callback: initChart
+      });
 
+      const updateChart = (data, count1, count2) => {
+        lineChart.data = data;
+        // set Colors
+        lineChart.options.colors = ['#d80129', '#00912b']
+        for (y = 0; y < count1; y++) {lineChart.options.colors.push('#ef99a9')}
+        for (y = 0; y < count2; y++) {lineChart.options.colors.push('#99d3aa')}
+        
+        lineChart.chart.draw(
+          google.visualization.arrayToDataTable(lineChart.data),
+          lineChart.options
+        );
+      };
+
+
+      
+
+      //############################################################################
+      //############################################################################
+      //############################################################################
+
+      // Shunting Yard Algorithm (Source: https://codepen.io/kimjer/pen/ONxKNq)
+
+      function queue(q) {
+        this.q = q;
+        this.len = function() {
+          return q.length;
+        }
+        this.push = function(ite) {
+          q.splice(0, 0, ite);
+        }
+        this.pop = function() {
+          return q.splice(0, 1)[0];
+        }
+        this.top = function() {
+          return q[0];
+        }
+
+        this.print = function() {
+          var s = "";
+          for (var i = 0; i < this.q.length; i++) {
+            s += q[i];
+          }
+          return s;
+        }
+      }
+
+      //used for displaying
+      function rev(q) {
+        var res = [];
+        for (var i = q.length - 1; i >= 0; i--) {
+          res.push(q[i]);
+        }
+        return res;
+      }
+
+      //list of precedences and associativities
+      var ops = {
+        '+': {
+          prec: 2,
+          ass: 'l'
+        },
+        '-': {
+          prec: 2,
+          ass: 'l'
+        },
+        '*': {
+          prec: 3,
+          ass: 'l'
+        },
+        '/': {
+          prec: 3,
+          ass: 'l'
+        },
+        '^': {
+          prec: 4,
+          ass: 'r'
+        }
+      }
+
+      function getPrec(ite) {
+        return ops[ite].prec;
+      }
+
+      function getAss(ite) {
+        return ops[ite].ass;
+      }
+
+      //-1 = op1 < op2; 0 = op1 == op2; 1 = op1>op2
+      function precomp(op1, op2) {
+        if (getPrec(op1) < getPrec(op2))
+          return -1;
+        else if (getPrec(op1) == getPrec(op2))
+          return 0;
+        else
+          return 1;
+      }
+
+      function isNum(ite) {
+        return !isNaN(ite);
+      }
+
+      function isOp(ite) {
+        return (ite == '+') || (ite == '-') || (ite == '*') || (ite == "/") || (ite == "^")
+      }
+
+      function isUnary(op) {
+        return false;
+      }
+
+      function isBinary(op) {
+        return (op == "+") || (op == "-") || (op == "*") || (op == "/") || (op == "^");
+      }
+
+      function doOp(op, num1, num2) {
+        if (num2 != undefined) {
+          if (op == "+")
+            return parseFloat(num1) + parseFloat(num2);
+          else if (op == "-")
+            return parseFloat(num2) - parseFloat(num1);
+          else if (op == "*")
+            return parseFloat(num1) * parseFloat(num2);
+          else if (op == "/")
+            return parseFloat(num2) / parseFloat(num1);
+          else if (op == "^")
+            return Math.pow(parseFloat(num2), parseFloat(num1));
+        }
+
+      }
+
+      function isParen(ite) {
+        return (ite == "(") || (ite == ")");
+      }
+
+      function isRightParen(ite) {
+        return ite == ")";
+      }
+
+      function isLeftParen(ite) {
+        return ite == "(";
+      }
+
+      //-------------------------------------------------------
+      function getTks(teststr) {
+        teststr = teststr.replace(/ /g,'');
+        var tks = [];
+        while (teststr.length > 0) {
+          var numreg = /^\d+\.?\d*|^\(-\d+\.?\d*(?=\))/;
+          var opreg = /^[+\-*/\^]/;
+          var parreg = /^[\(\)]/;
+          var r = "",
+            r2 = "",
+            r3 = "";
+
+          r = numreg.exec(teststr);
+          r2 = opreg.exec(teststr);
+          r3 = parreg.exec(teststr);
+
+          // var r = parseFloat(teststr);
+          if (r != null) {
+            if (r[0][0] == '(') {
+              tks.push(snip(r[0], '('))
+              teststr = snip(teststr, r[0] + ')');
+            } else {
+              tks.push(r[0]);
+              teststr = snip(teststr, r[0]);
+            }
+
+          } else {
+            var op = teststr.charAt(0);
+            tks.push(op);
+            teststr = snip(teststr);
+          }
+        }
+        return tks;
+      }
+
+      function snip(teststr, r) {
+        var s = "";
+        if (r == undefined) {
+          for (var i = 1; i < teststr.length; i++) {
+            s += teststr[i];
+          }
+          return s;
+        } else {
+          var l = String(r).length;
+          for (var i = l; i < teststr.length; i++) {
+            s += teststr[i];
+          }
+          return s;
+        }
+      }
+
+      function regtest() {
+        var numreg = /^\d+\.?\d*|^(?=\()-\d+\.?\d*(?=\))/;
+        var opreg = /^[+\-*/\^]/;
+        var parreg = /^[\(\)]/;
+
+        var teststr = "3+5";
+        var exp = "3",
+          res = numreg.exec(teststr);
+        if (res == null)
+          console.log('FAIL: numreg.exec("' + teststr + '") is null')
+        else if (res[0] == exp)
+          console.log('PASS: numreg.exec("' + teststr + '")[0] == "' + exp)
+        else
+          console.log('FAIL: numreg.exec("' + teststr + '")[0] == "' + exp + '"; should be ' + exp + ', got ' + res[0])
+
+        teststr = "(-3)+5";
+        exp = "-3"
+        res = numreg.exec(teststr);
+
+        if (res == null)
+          console.log('FAIL: numreg.exec("' + teststr + '") is null')
+        else if (res[0] == exp)
+          console.log('PASS: numreg.exec("' + teststr + '")[0] == "' + exp)
+        else
+          console.log('FAIL: numreg.exec("' + teststr + '")[0] == "' + exp + '"; should be ' + exp + ', got ' + res[0])
+
+        teststr = "(-3)+5";
+        exp = "-3"
+        res = numreg.exec(teststr);
+
+        if (res == null)
+          console.log('FAIL: numreg.exec("' + teststr + '") is null')
+        else if (res[0] == exp)
+          console.log('PASS: numreg.exec("' + teststr + '")[0] == "' + exp)
+        else
+          console.log('FAIL: numreg.exec("' + teststr + '")[0] == "' + exp + '"; should be ' + exp + ', got ' + res[0])
+
+      }
+
+      function getRpn(expr) {
+        var tks = getTks(expr);
+        var q = new queue(tks);
+        var buf1 = new queue([]);
+        var buf2 = new queue([]);
+        while (q.len() > 0) {
+          if (isNum(q.top())) {
+            buf1.push(q.pop())
+          } else if (isOp(q.top())) {
+            if ((buf2.len() > 0) && (isOp(buf2.top())) && ((precomp(q.top(), buf2.top()) <= 0 && getAss(q.top()) == 'l') || (precomp(q.top(), buf2.top()) == -1 && getAss(q.top()) == 'r'))) {
+              while ((buf2.len() > 0) && (isOp(buf2.top())) && ((precomp(q.top(), buf2.top()) <= 0 && getAss(q.top()) == 'l') || (precomp(q.top(), buf2.top()) == -1 && getAss(q.top()) == 'r'))) {
+                buf1.push(buf2.pop());
+              }
+              buf2.push(q.pop())
+            } else {
+              buf2.push(q.pop());
+            }
+
+          } else if (isParen(q.top())) {
+            if (isRightParen(q.top())) {
+              while (!isLeftParen(buf2.top())) //until the top of the op stack is left paren...
+              {
+                buf1.push(buf2.pop()) //pop tokens off the op stack
+              }
+              buf2.pop()
+              q.pop();
+            } else {
+              buf2.push(q.pop()); //if left paren, push onto op stack
+
+            }
+          } else //don't need this
+          {
+            console.log("dont know")
+            q.pop()
+          }
+        }
+        while (buf2.len() > 0) {
+          buf1.push(buf2.pop())
+        }
+        return buf1
+      }
+
+      function calc(rpn) {
+        var stk = new queue([]);
+        console.log(rpn.q)
+        while (rpn.len() > 0) {
+          if (isNum(rpn.top())) {
+            console.log("h" + rpn.top())
+            stk.push(rpn.pop())
+          }
+          if (isOp(rpn.top())) {
+            if (isUnary(rpn.top())) {
+              var num = stk.pop();
+              var op = rpn.pop();
+              var res = doOp(op, num);
+              stk.push(res)
+            } else if (isBinary(rpn.top())) {
+              var num1 = stk.pop();
+              var num2 = stk.pop();
+              var op = rpn.pop();
+              res = doOp(op, num1, num2);
+              stk.push(res)
+            }
+          }
+        }
+        console.log(stk.q)
+        return stk;
+      }
+      //--------------------------------------------------------
+      
+
+      // Example: shuntingYard('10^2+(1+12/3)') -> 105
+      function shuntingYard(equation) {
+        return calc(new queue(rev(getRpn(equation).q))).print()
       }
 
     </script>
