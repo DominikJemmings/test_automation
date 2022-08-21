@@ -13,7 +13,7 @@
     </style>
   </head>
   <body>
-    <h1 class="text-center">Test Automation ROI Calculator</h1>
+    <h1 class="text-center">Test Automation Calculator</h1>
     <main id="app" class="container">
       <section class="row mb-3">
         <div class="col-md-9">
@@ -179,10 +179,10 @@
         </div>
       </div>
     </main>
+    <!--
     <footer id="footer">
       <p><a href="" data-bs-toggle="modal" data-bs-target="#modalAbout">About</a> • <a href="#" data-bs-toggle="modal" data-bs-target="#modalExample">Example</a> • <a href="#" data-bs-toggle="modal" data-bs-target="#modalAlternatives">Alternatives</a></p>
     </footer>
-    <!-- Modal -->
     <div class="modal modal-lg fade" id="modalAbout" tabindex="-1" aria-labelledby="modalAboutLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -199,7 +199,6 @@
         </div>
       </div>
     </div>
-    <!-- Modal -->
     <div class="modal modal-lg fade" id="modalExample" tabindex="-1" aria-labelledby="modalExampleLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -216,7 +215,6 @@
         </div>
       </div>
     </div>
-    <!-- Modal -->
     <div class="modal modal-lg fade" id="modalAlternatives" tabindex="-1" aria-labelledby="modalAlternativesLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -233,7 +231,7 @@
         </div>
       </div>
     </div>
-  </main>
+  -->
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/vue@3"></script>
@@ -244,16 +242,16 @@
       createApp({
         data() {
           return {
-            roi: 0,
-            testRuns: 20,
+            roi: 44.1176,
+            testRuns: 8,
             showFactors: false,
 
             currentFactorModalType: null,
             currentFactorModalIndex: null,
             currentFactor: {name: null, value: null, type: 'fix'},
 
-            manualFactors: [{name: 'Test Design', value: '50', type: 'fix'}, {name: 'Test Exectution', value: '10', type: 'var'}],
-            automatedFactors: [{name: 'Test Design', value: '100', type: 'fix'}, {name: 'Test Exectution', value: '5', type: 'var'}]
+            manualFactors: [{"name": "Specification of the test case", "value": "10", "type": "fix"}, {"name": "Execution of the test case", "value": "20", "type": "var"}],
+            automatedFactors: [{"name": "Specification of the test case", "value": "10", "type": "fix"}, {"name": "Automation of the test case", "value": "45", "type": "fix"}, {"name": "Execution of the test case", "value": "5", "type": "var"}]
 
 
           }
@@ -386,7 +384,7 @@
                   currentValue = Number(automatedFactor.value) * y
                 } else {
                   let currentEquation = automatedFactor.value.replace("n", y.toString())
-                  automatedFactor = Number(shuntingYard(currentEquation))
+                  currentValue = Number(shuntingYard(currentEquation))
                 }
                 sumAutomated += (currentValue)
                 if (this.showFactors) {
@@ -400,6 +398,8 @@
             }
 
             console.log(chartData)
+            console.log(this.manualFactors)
+            console.log(this.automatedFactors)
 
 
             updateChart(chartData, this.manualFactors.length, this.automatedFactors.length)
@@ -432,114 +432,54 @@
         chart: null,
         data: [
           [
-            "Test runs",
-            "Manuel Testing",
-            "Automated Testing"
+              "Test runs",
+              "Manuel Testing",
+              "Automated Testing"
           ],
           [
-            "0",
-            50,
-            100
+              "0",
+              10,
+              55
           ],
           [
-            "1",
-            60,
-            105
+              "1",
+              30,
+              60
           ],
           [
-            "2",
-            70,
-            110
+              "2",
+              50,
+              65
           ],
           [
-            "3",
-            80,
-            115
+              "3",
+              70,
+              70
           ],
           [
-            "4",
-            90,
-            120
+              "4",
+              90,
+              75
           ],
           [
-            "5",
-            100,
-            125
+              "5",
+              110,
+              80
           ],
           [
-            "6",
-            110,
-            130
+              "6",
+              130,
+              85
           ],
           [
-            "7",
-            120,
-            135
+              "7",
+              150,
+              90
           ],
           [
-            "8",
-            130,
-            140
-          ],
-          [
-            "9",
-            140,
-            145
-          ],
-          [
-            "10",
-            150,
-            150
-          ],
-          [
-            "11",
-            160,
-            155
-          ],
-          [
-            "12",
-            170,
-            160
-          ],
-          [
-            "13",
-            180,
-            165
-          ],
-          [
-            "14",
-            190,
-            170
-          ],
-          [
-            "15",
-            200,
-            175
-          ],
-          [
-            "16",
-            210,
-            180
-          ],
-          [
-            "17",
-            220,
-            185
-          ],
-          [
-            "18",
-            230,
-            190
-          ],
-          [
-            "19",
-            240,
-            195
-          ],
-          [
-            "20",
-            250,
-            200
+              "8",
+              170,
+              95
           ]
         ],
         options: {
@@ -878,6 +818,8 @@
 
       // Example: shuntingYard('10^2+(1+12/3)') -> 105
       function shuntingYard(equation) {
+        console.log('TEST: ' + equation + ' = ')
+        console.log('TEST: ' + calc(new queue(rev(getRpn(equation).q))).print())
         return calc(new queue(rev(getRpn(equation).q))).print()
       }
 
