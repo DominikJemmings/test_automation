@@ -242,7 +242,7 @@
       createApp({
         data() {
           return {
-            roi: 44.1176,
+            roi: 78.95,
             testRuns: 8,
             showFactors: false,
 
@@ -409,7 +409,7 @@
             const dataLength = chartData.length
             const manualCost = chartData[dataLength - 1][1]
             const automatedCost = chartData[dataLength - 1][2]
-            this.roi = ((manualCost - automatedCost) / manualCost) * 100
+            this.roi = ((manualCost - automatedCost) / automatedCost) * 100
           }
         }
       }).mount('#app')
